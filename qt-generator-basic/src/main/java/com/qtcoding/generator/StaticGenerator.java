@@ -20,8 +20,8 @@ public class StaticGenerator {
     /**
      * 拷贝文件（Hutool 实现，会将输入目录完整拷贝到输出目录下）
      *
-     * @param inputPath
-     * @param outputPath
+     * @param inputPath  输入路径
+     * @param outputPath 输出路径
      */
     public static void copyFilesByHutool(String inputPath, String outputPath) {
         FileUtil.copy(inputPath, outputPath, false);
@@ -40,8 +40,9 @@ public class StaticGenerator {
 
     /**
      * 递归拷贝文件（递归实现，会将输入目录完整拷贝到输出目录下）
-     * @param inputPath
-     * @param outputPath
+     *
+     * @param inputPath  输入路径
+     * @param outputPath 输出路径
      */
     public static void copyFilesByRecursive(String inputPath, String outputPath) {
         File inputFile = new File(inputPath);
@@ -58,8 +59,9 @@ public class StaticGenerator {
      * 文件 A => 目录 B，则文件 A 放在目录 B 下
      * 文件 A => 文件 B，则文件 A 覆盖文件 B
      * 目录 A => 目录 B，则目录 A 放在目录 B 下
-     *
+     * <p>
      * 核心思路：先创建目录，然后遍历目录内的文件，依次复制
+     *
      * @param inputFile
      * @param outputFile
      * @throws IOException
