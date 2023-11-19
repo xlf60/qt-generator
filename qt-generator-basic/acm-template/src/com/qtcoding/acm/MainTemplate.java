@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  * Description  ACM输入模板(多数之和)
  *
- * @author: qtcoding
+ * @author: xx
  * @date: 2023/11/14
  */
 public class MainTemplate {
@@ -13,6 +13,7 @@ public class MainTemplate {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
+        while (scanner.hasNext()) {
             // 读取输入元素个数
             int n = scanner.nextInt();
 
@@ -30,7 +31,8 @@ public class MainTemplate {
             }
 
             // 3.输出信息可以修改
-            System.out.println("求和结果：" + sum);
+            System.out.println("xxxx" + sum);
+    }
         scanner.close();
     }
 }
