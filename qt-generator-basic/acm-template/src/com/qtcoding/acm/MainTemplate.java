@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  * Description  ACM输入模板(多数之和)
  *
- * @author: xx
+ * @author: 嘻嘻嘻
  * @date: 2023/11/14
  */
 public class MainTemplate {
@@ -31,7 +31,7 @@ public class MainTemplate {
             }
 
             // 3.输出信息可以修改
-            System.out.println("xxxx" + sum);
+            System.out.println("和为：" + sum);
     }
         scanner.close();
     }
