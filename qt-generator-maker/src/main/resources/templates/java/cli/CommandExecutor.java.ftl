@@ -1,6 +1,4 @@
-package $
-
-{basePackage}.cli;
+package ${basePackage}.cli;
 
 import ${basePackage}.cli.command.GenerateCommand;
 import ${basePackage}.cli.command.ListCommand;
