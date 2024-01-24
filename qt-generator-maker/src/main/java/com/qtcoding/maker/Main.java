@@ -1,6 +1,5 @@
 package com.qtcoding.maker;
 
-import com.qtcoding.maker.cli.CommandExecutor;
 import com.qtcoding.maker.generator.main.MainGenerator;
 import freemarker.template.TemplateException;
 

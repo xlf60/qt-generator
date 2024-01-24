@@ -1,4 +1,4 @@
-package com.yupi.maker.generator.main;
+package com.qtcoding.maker.generator.main;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ClassPathResource;
