@@ -1,12 +1,21 @@
 package com.qtcoding.maker.generator.main;
 
-/**
- * 生成代码生成器
- */
+
+
+import com.qtcoding.maker.meta.Meta;
+
+import java.io.IOException;
+
 public class MainGenerator extends GenerateTemplate {
 
     @Override
-    protected void buildDist(String outputPath, String sourceCopyDestPath, String jarPath, String shellOutputFilePath) {
-        System.out.println("不要给我输出 dist 啦！");
+    protected void buildDist(String outputPath, String jarPath, String shellOutputPath, String sourceOutputPath) {
+        System.out.println("重写子类 不生成dist精简版程序");
     }
+
+    @Override
+    protected void versionControl(Meta meta, String outputPath, String inputResourcePath) throws IOException, InterruptedException {
+        System.out.println("重写子类 不生成git版本控制文件 和 .gitignore 文件啦");
+    }
+
 }

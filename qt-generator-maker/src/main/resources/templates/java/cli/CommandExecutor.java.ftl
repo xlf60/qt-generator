@@ -1,15 +1,17 @@
 package ${basePackage}.cli;
 
+import ${basePackage}.cli.command.ConfigCommand;
 import ${basePackage}.cli.command.GenerateCommand;
 import ${basePackage}.cli.command.ListCommand;
-import ${basePackage}.cli.command.ConfigCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 /**
- * 命令执行器
+ * @author ${author}
+ * @date ${.now}
+ * @description 绑定所有子命令
  */
-@Command(name = "${name}", mixinStandardHelpOptions = true)
+@Command(name = "${name}", mixinStandardHelpOptions = true, version = "1.0")
 public class CommandExecutor implements Runnable {
 
     private final CommandLine commandLine;
@@ -17,23 +19,24 @@ public class CommandExecutor implements Runnable {
     {
         commandLine = new CommandLine(this)
                 .addSubcommand(new GenerateCommand())
-                .addSubcommand(new ConfigCommand())
-                .addSubcommand(new ListCommand());
+                .addSubcommand(new ListCommand())
+                .addSubcommand(new ConfigCommand());
     }
+
 
     @Override
     public void run() {
-// 不输入子命令时，给出友好提示
-        System.out.println("请输入具体命令，或者输入 --help 查看命令提示");
+        // 不执行子命令时候 打印帮助信息
+        commandLine.usage(System.out);
     }
 
     /**
-     * 执行命令
+     * 执行子命令
      *
-     * @param args
-     * @return
+     * @param args 命令行参数
      */
-    public Integer doExecute(String[] args) {
-        return commandLine.execute(args);
+    public void doExecute(String[] args) {
+        commandLine.execute(args);
     }
+
 }

@@ -1,6 +1,9 @@
 package com.qtcoding.maker.meta;
 
-public class MetaException extends RuntimeException {
+/**
+ * 处理meta的异常信息
+ */
+public class MetaException extends RuntimeException{
 
     public MetaException(String message) {
         super(message);
@@ -9,4 +12,5 @@ public class MetaException extends RuntimeException {
     public MetaException(String message, Throwable cause) {
         super(message, cause);
     }
+
 }

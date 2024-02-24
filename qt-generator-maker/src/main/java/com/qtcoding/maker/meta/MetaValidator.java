@@ -1,135 +1,159 @@
 package com.qtcoding.maker.meta;
 
-import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.BooleanUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.qtcoding.maker.meta.enums.FileGenerateTypeEnum;
 import com.qtcoding.maker.meta.enums.FileTypeEnum;
 import com.qtcoding.maker.meta.enums.ModelTypeEnum;
 
 
-import java.io.File;
-import java.nio.file.Paths;
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * 元信息校验
+ * Meta 校验类
  */
 public class MetaValidator {
 
-    public static void doValidAndFill(Meta meta) {
-        validAndFillMetaRoot(meta);
-        validAndFillFileConfig(meta);
-        validAndFillModelConfig(meta);
+    public static void validate(Meta meta) throws MetaException {
+        // 校验基础信息
+        validBasicInfo(meta);
+        // 校验fileConfig
+        validFileConfig(meta);
+        // 校验modelFileInfo
+        validFileModelInfo(meta);
     }
 
-    public static void validAndFillModelConfig(Meta meta) {
-        Meta.ModelConfig modelConfig = meta.getModelConfig();
+    private static void validFileModelInfo(Meta meta) {
+        // fileModelInfo的默认值
+        Meta.ModelConfigDTO modelConfig = meta.getModelConfig();
         if (modelConfig == null) {
             return;
         }
-        // modelConfig 默认值
-        List<Meta.ModelConfig.ModelInfo> modelInfoList = modelConfig.getModels();
-        if (!CollectionUtil.isNotEmpty(modelInfoList)) {
+        Meta.ModelConfigDTO.ModelInfoDTO models = modelConfig.getModels();
+        if (models == null) {
             return;
         }
-        for (Meta.ModelConfig.ModelInfo modelInfo : modelInfoList) {
-            // 输出路径默认值
-            String fieldName = modelInfo.getFieldName();
-            if (StrUtil.isBlank(fieldName)) {
-                throw new MetaException("未填写 fieldName");
-            }
+        Class<? extends Meta.ModelConfigDTO.ModelInfoDTO> modelsClass = models.getClass();
+        Field[] fields = modelsClass.getDeclaredFields();
+        if(ArrayUtil.isEmpty(fields)){
+            throw new MetaException("modelInfo 不能为空!");
+        }
+        if(ArrayUtil.isNotEmpty(fields)){
+            for (Field field : fields) {
+                field.setAccessible(true);
+                try {
+                    Meta.ModelConfigDTO.ModelInfoDTO.DataModelDTO modelInfo = (Meta.ModelConfigDTO.ModelInfoDTO.DataModelDTO) field.get(models);
+                    modelInfo.setDescription(StrUtil.blankToDefault(modelInfo.getDescription(),"动态模板配置"));
+                    List<Meta.ModelConfigDTO.ModelInfoDTO.DataModelDTO.FiledInfoDTO> filedInfo = modelInfo.getFiledInfo();
+                    if(ArrayUtil.isEmpty(filedInfo)){
+                        throw new MetaException("filedInfo 不能为空!");
+                    }
+                    for (Meta.ModelConfigDTO.ModelInfoDTO.DataModelDTO.FiledInfoDTO infoDTO : filedInfo) {
+                        if(StrUtil.isNotEmpty(infoDTO.getGroupKey())){
+                            List<Meta.ModelConfigDTO.ModelInfoDTO.DataModelDTO.FiledInfoDTO> dtoModels = infoDTO.getModels();
+                            String argsStr = dtoModels.stream().map(subInfoDTO -> String.format("\"--%s\"", subInfoDTO.getFieldName())).collect(Collectors.joining(", "));
+                            infoDTO.setAllArgsStr(argsStr);
+                            continue;
+                        }
+                        String fieldName = infoDTO.getFieldName();
+                        if(StrUtil.isBlank(fieldName)){
+                            throw new MetaException("fieldName 不能为空!");
+                        }
+                        infoDTO.setType(StrUtil.blankToDefault(infoDTO.getType(), ModelTypeEnum.STRING.getValue()));
+                        infoDTO.setDescription(StrUtil.blankToDefault(infoDTO.getDescription(),"描述"));
 
-            String modelInfoType = modelInfo.getType();
-            if (StrUtil.isEmpty(modelInfoType)) {
-                modelInfo.setType(ModelTypeEnum.STRING.getValue());
-            }
-        }
-    }
-
-    public static void validAndFillFileConfig(Meta meta) {
-        // fileConfig 默认值
-        Meta.FileConfig fileConfig = meta.getFileConfig();
-        if (fileConfig == null) {
-            return;
-        }
-        // sourceRootPath：必填
-        String sourceRootPath = fileConfig.getSourceRootPath();
-        if (StrUtil.isBlank(sourceRootPath)) {
-            throw new MetaException("未填写 sourceRootPath");
-        }
-        // inputRootPath：.source + sourceRootPath 的最后一个层级路径
-        String inputRootPath = fileConfig.getInputRootPath();
-        String defaultInputRootPath = ".source" + File.separator + FileUtil.getLastPathEle(Paths.get(sourceRootPath)).getFileName().toString();
-        if (StrUtil.isEmpty(inputRootPath)) {
-            fileConfig.setInputRootPath(defaultInputRootPath);
-        }
-        // outputRootPath：默认为当前路径下的 generated
-        String outputRootPath = fileConfig.getOutputRootPath();
-        String defaultOutputRootPath = "generated";
-        if (StrUtil.isEmpty(outputRootPath)) {
-            fileConfig.setOutputRootPath(defaultOutputRootPath);
-        }
-        String fileConfigType = fileConfig.getType();
-        String defaultType = FileTypeEnum.DIR.getValue();
-        if (StrUtil.isEmpty(fileConfigType)) {
-            fileConfig.setType(defaultType);
-        }
-
-        // fileInfo 默认值
-        List<Meta.FileConfig.FileInfo> fileInfoList = fileConfig.getFiles();
-        if (!CollectionUtil.isNotEmpty(fileInfoList)) {
-            return;
-        }
-        for (Meta.FileConfig.FileInfo fileInfo : fileInfoList) {
-            // inputPath: 必填
-            String inputPath = fileInfo.getInputPath();
-            if (StrUtil.isBlank(inputPath)) {
-                throw new MetaException("未填写 inputPath");
-            }
-
-            // outputPath: 默认等于 inputPath
-            String outputPath = fileInfo.getOutputPath();
-            if (StrUtil.isEmpty(outputPath)) {
-                fileInfo.setOutputPath(inputPath);
-            }
-            // type：默认 inputPath 有文件后缀（如 .java）为 file，否则为 dir
-            String type = fileInfo.getType();
-            if (StrUtil.isBlank(type)) {
-                // 无文件后缀
-                if (StrUtil.isBlank(FileUtil.getSuffix(inputPath))) {
-                    fileInfo.setType(FileTypeEnum.DIR.getValue());
-                } else {
-                    fileInfo.setType(FileTypeEnum.FILE.getValue());
-                }
-            }
-            // generateType：如果文件结尾不为 Ftl，generateType 默认为 static，否则为 dynamic
-            String generateType = fileInfo.getGenerateType();
-            if (StrUtil.isBlank(generateType)) {
-                // 为动态模板
-                if (inputPath.endsWith(".ftl")) {
-                    fileInfo.setGenerateType(FileGenerateTypeEnum.DYNAMIC.getValue());
-                } else {
-                    fileInfo.setGenerateType(FileGenerateTypeEnum.STATIC.getValue());
+                        Object defaultValue = infoDTO.getDefaultValue();
+                        if(ObjectUtil.isEmpty(defaultValue)){
+                            infoDTO.setDefaultValue("默认值");;
+                        }
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new MetaException("获取ModelInfo 异常 请检查！");
                 }
             }
         }
     }
 
-    public static void validAndFillMetaRoot(Meta meta) {
-        // 校验并填充默认值
-        String name = StrUtil.blankToDefault(meta.getName(), "my-generator");
-        String description = StrUtil.emptyToDefault(meta.getDescription(), "我的模板代码生成器");
-        String author = StrUtil.emptyToDefault(meta.getAuthor(), "qtcoding");
-        String basePackage = StrUtil.blankToDefault(meta.getBasePackage(), "com.qtcoding");
-        String version = StrUtil.emptyToDefault(meta.getVersion(), "1.0");
-        String createTime = StrUtil.emptyToDefault(meta.getCreateTime(), DateUtil.now());
-        meta.setName(name);
-        meta.setDescription(description);
-        meta.setAuthor(author);
-        meta.setBasePackage(basePackage);
-        meta.setVersion(version);
-        meta.setCreateTime(createTime);
+    private static void validFileConfig(Meta meta) {
+        // fileConfig的默认值
+        Meta.FileConfigDTO fileInfo = meta.getFileConfig();
+        if (fileInfo == null) {
+            return;
+        }
+        // sourceRootPath 必填项
+        String sourceRootPath = fileInfo.getSourceRootPath();
+        if(StrUtil.isBlank(sourceRootPath)){
+            throw new MetaException("sourceRootPath 不能为空!");
+        }
+        // .source/ + sourceRootPath
+        fileInfo.setInputRootPath(StrUtil.emptyToDefault(fileInfo.getInputRootPath(), ".source/" + sourceRootPath));
+        // 默认为 generated
+        fileInfo.setOutputRootPath(StrUtil.blankToDefault(fileInfo.getOutputRootPath(),"generated"));
+        // 默认为dir
+        fileInfo.setType(StrUtil.blankToDefault(fileInfo.getType(),"dir"));
+
+        // 校验FileInfo
+        List<Meta.FileConfigDTO.FileInfoDTO> fileInfoList = fileInfo.getFiles();
+        if (fileInfoList == null) {
+            return;
+        }
+        for (Meta.FileConfigDTO.FileInfoDTO fileInfoDTO : fileInfoList) {
+            String type1 = fileInfoDTO.getType();
+            if(FileTypeEnum.GROUP.getValue().equals(type1)){
+                continue;
+            }
+            // 必填项
+            String inputPath = fileInfoDTO.getInputPath();
+            if(StrUtil.isBlank(inputPath)){
+                throw new MetaException("inputPath 不能为空!");
+            }
+            // outputPath 默认和inputPath相同
+            fileInfoDTO.setOutputPath(StrUtil.blankToDefault(fileInfoDTO.getOutputPath(),inputPath));
+
+            // 默认为 dir
+             String type = fileInfoDTO.getType();
+            if(StrUtil.isBlank(type)){
+               // 判断是否有后缀 有后缀就是文件 否则就是目录
+                if(StrUtil.isBlank(FileUtil.getSuffix(inputPath))){
+                    type = FileTypeEnum.DIR.getValue();
+                }else {
+                    type =  FileTypeEnum.FILE.getValue();
+                }
+                fileInfoDTO.setType(type);
+            }
+            String generateType = fileInfoDTO.getGenerateType();
+            // 如果有 .ftl 后缀 则是模板文件 Dynamic 否则就是 Static
+            if(StrUtil.isBlank(generateType)){
+                if(inputPath.endsWith(".ftl")){
+                    type = FileGenerateTypeEnum.DYNAMIC.getValue();
+                }else {
+                    type =  FileGenerateTypeEnum.STATIC.getValue();
+                }
+                fileInfoDTO.setType(type);
+            }
+        }
     }
+
+    private static void validBasicInfo(Meta meta) {
+        // 基础信息校验和默认值
+        meta.setName(StrUtil.blankToDefault(meta.getName(),"acm-template-pro-generator"));
+        meta.setDescription(StrUtil.blankToDefault(meta.getDescription(),"ACM 模板生成器"));
+        meta.setBasePackage(StrUtil.blankToDefault( meta.getBasePackage(),"com.qtcoding"));
+        meta.setVersion(StrUtil.blankToDefault( meta.getVersion(),"1.0"));
+        meta.setAuthor(StrUtil.blankToDefault(meta.getAuthor(),"qtcoding"));
+        meta.setCreateTime(StrUtil.blankToDefault(meta.getCreateTime(),DateUtil.now()));
+
+        Boolean forcedInteractiveSwitch = meta.getForcedInteractiveSwitch();
+        meta.setForcedInteractiveSwitch(BooleanUtil.isTrue(forcedInteractiveSwitch));
+        Boolean versionControl = meta.getVersionControl();
+        meta.setVersionControl(BooleanUtil.isTrue(versionControl));
+    }
+
+
 }
